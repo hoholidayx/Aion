@@ -56,15 +56,15 @@ def interactive():
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", nargs="?", choices=ACTIONS, help="defaults to status")
+    parser.add_argument("action", nargs="?", choices=ACTIONS, help="omit to open the service console")
     parser.add_argument("target", nargs="?", choices=TARGETS, help="defaults to all")
     parser.add_argument("-i", "--interactive", action="store_true", help="open the service console")
     args = parser.parse_args()
-    if args.interactive:
-        if args.action is not None:
-            parser.error("--interactive cannot be combined with a command")
+    if args.interactive and args.action is not None:
+        parser.error("--interactive cannot be combined with a command")
+    if args.action is None:
         return interactive()
-    return manage(args.action or "status", args.target or "all")
+    return manage(args.action, args.target or "all")
 
 
 if __name__ == "__main__":

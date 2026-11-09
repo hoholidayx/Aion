@@ -36,7 +36,7 @@ Aion/
 
 ## 本机服务管理
 
-- 从 `Aion/` 运行 `./manage-services.py [start|stop|restart|status] [all|web|image-mcp]`，无参数时查看全部状态。命令模式直接返回，任一目标失败或状态不健康时返回非零。用 `./manage-services.py --interactive` 打开交互入口。
+- 从 `Aion/` 运行 `./manage-services.py` 打开交互入口，也可以显式传入 `--interactive`。使用 `./manage-services.py {start|stop|restart|status} [all|web|image-mcp]` 直接执行命令。省略服务时操作全部，任一目标失败或状态不健康时返回非零。
 - `web` 包含 Web CLI 及其 AionCore 子进程，`image-mcp` 管理本机生图服务。统一入口复用各自的后台管理器和现有配置。批量启动时先启动生图服务，批量停止时先停止 Web。移动仓库或替换发布包前先停止受影响的服务，完成后检查进程、监听端口和 HTTP 健康状态。
 - 发布包位于 `AionUi/out/web-production/`，默认监听 `0.0.0.0:25808`。需要本机监听时，在启动或重启命令前设置 `AIONUI_ALLOW_REMOTE=0`。
 - Web 用户数据和服务日志位于 `~/.aionui-web/`，macOS 的 AionRS 全局配置和记忆位于 `~/.aionrs/`。清理 `tmp/` 时保留这些目录以及正式发布包和部署备份。
