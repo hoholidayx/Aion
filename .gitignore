@@ -1,0 +1,7 @@
+# Track only the five submodule directories at the workspace root.
+/*/
+!/AionUi/
+!/AionCore/
+!/aionrs/
+!/aion-openai-image-mcp/
+!/dots-bridge/

@@ -1,0 +1,41 @@
+# Aion 本地工作区
+
+```text
+Aion/
+├── AionUi/    Web 界面、独立 Web CLI 和桌面端源码
+├── AionCore/  Rust 后端，提供 API、认证和会话管理
+├── aionrs/    Rust Agent 引擎，提供模型接入、工具和记忆
+├── aion-openai-image-mcp/  独立的供应商生图适配服务
+├── build-tools/  本机可复用的构建工具和缓存
+├── local/     本机配置和私有脚本
+├── notes/     本地说明、排查记录和维护笔记
+└── tmp/       可清理的日志、临时文件和打包中间产物
+```
+
+## 仓库与构建
+
+- 三个源码目录各自是独立的 Git 仓库。修改前读取对应仓库的 `AGENTS.md`，按各仓库的规则验证并分别提交。仅在用户明确要求时推送，并在对应仓库执行 `just push`。
+- 保持三个仓库同级并保留目录名。AionCore 的 Cargo 依赖通过 `../aionrs` 读取本地源码，跨仓库构建时依次检查 aionrs、AionCore 和 AionUi。
+- 生图适配服务是独立仓库，用 `uv sync --locked` 安装依赖，`uv run --locked aion-image-mcp-service` 管理服务，`uv run --locked pytest` 验证。保持与 Aion Web 独立启停，供应商配置、凭据和任务数据存放在源码目录之外。
+- 本机正式部署范围为 Web 和 AionCore。构建与打包流程见 [AionUi 开发文档](AionUi/docs/contributing/development.md)。本地配置、凭据和临时产物放在工作区的本地目录中，避免进入源码仓库。
+
+## 本机构建工具
+
+- 构建前优先复用 `build-tools/` 中已有的 Rust 1.96.1（含 rustfmt、Clippy）、Bun 1.4.4（`bun`、`bunx`）和缓存。清理 `tmp/` 时保留 `build-tools/`。
+- 在 `Aion/` 根目录运行以下命令，为当前终端配置本机工具。Node.js 和 cargo-nextest 沿用系统 PATH。
+
+  ```sh
+  export AION_BUILD_TOOLS="$PWD/build-tools"
+  export CARGO_HOME="$AION_BUILD_TOOLS/cargo"
+  export RUSTUP_HOME="$AION_BUILD_TOOLS/rustup"
+  export PATH="$AION_BUILD_TOOLS/tool-bin:$CARGO_HOME/bin:$PATH"
+  ```
+
+- Cargo 测试和正式构建分别通过 `CARGO_TARGET_DIR` 使用 `$AION_BUILD_TOOLS/test-target` 和 `$AION_BUILD_TOOLS/release-target`。正式构建使用 `cargo +1.96.1`，保留开发文档里的 release strip 设置。使用此目录构建的后端在 `$AION_BUILD_TOOLS/release-target/release/aioncore`，打包时以此为准。npm 下载缓存位于 `$AION_BUILD_TOOLS/npm-cache`。
+- Cargo 会按源码、路径和构建选项重新判断缓存。路径移动后首次构建可能重新编译部分依赖，后续保持工具和缓存路径稳定。
+
+## 本机 Web 服务
+
+- 从 `Aion/` 运行 `python3 AionUi/packages/web-cli/manageWebService.py status`。同一脚本支持 `start`、`stop` 和 `restart`。移动仓库或替换发布包前先用脚本停止旧进程，完成后检查进程、监听端口和 HTTP 健康状态。
+- 发布包位于 `AionUi/out/web-production/`，默认监听 `0.0.0.0:25808`。需要本机监听时，在启动或重启命令前设置 `AIONUI_ALLOW_REMOTE=0`。
+- Web 用户数据和服务日志位于 `~/.aionui-web/`，macOS 的 AionRS 全局配置和记忆位于 `~/.aionrs/`。清理 `tmp/` 时保留这些目录以及正式发布包和部署备份。

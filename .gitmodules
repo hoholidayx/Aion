@@ -1,0 +1,15 @@
+[submodule "AionUi"]
+	path = AionUi
+	url = https://github.com/hoholidayx/AionUi.git
+[submodule "AionCore"]
+	path = AionCore
+	url = https://github.com/hoholidayx/AionCore.git
+[submodule "aionrs"]
+	path = aionrs
+	url = https://github.com/hoholidayx/aionrs.git
+[submodule "aion-openai-image-mcp"]
+	path = aion-openai-image-mcp
+	url = https://github.com/hoholidayx/aion-openai-image-mcp.git
+[submodule "dots-bridge"]
+	path = dots-bridge
+	url = https://github.com/hoholidayx/dots-bridge.git
