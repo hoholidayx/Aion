@@ -2,6 +2,8 @@
 
 2026 年 11 月 10 日更新。以下任务按依赖顺序排列。
 
+接口缺口、诊断和分类问题单独记录在 [记忆 MCP 与 Skill 接口待办](memory-mcp-backlog.md)。
+
 ## 当前能力
 
 - 登录 WebUI 后，AionRS 助手可以通过 AionCore 使用 Mem0 的查询、写入、更新和单条删除工具。AionCore 与 MCP 配置同一份服务密钥，AionCore 从登录用户和助手定义自动确定长期记忆分区。助手仍独立启用，单条删除沿用用户确认。需要沿用旧分区时，配置不含凭据的分区映射。[配置与分区](../AionCore/ARCHITECTURE.md#assistant-long-term-memory) · [工具接入](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs)
