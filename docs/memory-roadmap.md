@@ -5,7 +5,7 @@
 ## 当前能力
 
 - 登录 WebUI 后，AionRS 助手可以通过 AionCore 使用 Mem0 的查询、写入、更新和单条删除工具。AionCore 与 MCP 配置同一份服务密钥，AionCore 从登录用户和助手定义自动确定长期记忆分区。助手仍独立启用，单条删除沿用用户确认。需要沿用旧分区时，配置不含凭据的分区映射。[配置与分区](../AionCore/ARCHITECTURE.md#assistant-long-term-memory) · [工具接入](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs)
-- `memory-triage` 已定义何时查、记和改。挂载后由主对话模型在轮内按需调用。MCP 用 `infer=false` 写入已经提取的事实，检索结果按现有分数排序。[Triage skill](https://github.com/hoholidayx/mem0-mcp-lan/blob/2bddda2bf2e5071c413f2bc57b67f9c1a25c8051/skills/memory-triage/SKILL.md) · [MCP 工具实现](https://github.com/hoholidayx/mem0-mcp-lan/blob/2bddda2bf2e5071c413f2bc57b67f9c1a25c8051/src/mem0_mcp/tools.py)
+- `memory-triage` 已定义何时查、记和改。挂载后由主对话模型在轮内按需调用。MCP 用 `infer=false` 写入已经提取的事实，检索结果按现有分数排序。[Triage skill](https://github.com/hoholidayx/mem0-mcp-lan/blob/25578407aeb9e3bf549fe7fc558bc4384e5b5ad7/skills/memory-triage/SKILL.md) · [MCP 工具实现](https://github.com/hoholidayx/mem0-mcp-lan/blob/25578407aeb9e3bf549fe7fc558bc4384e5b5ad7/src/mem0_mcp/tools.py)
 
 ## 1. 自动 recall 和检索追踪
 
