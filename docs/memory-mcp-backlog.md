@@ -37,10 +37,9 @@
 - [ ] **10. MCP 无可调相关度阈值，成立。** NAS 已有上游 `threshold`，它筛的是混合评分前的语义分。新增 `minScore` 时定义为返回结果 `score` 的下限，接受 0 到 1，省略时沿用当前行为。验收低于阈值被排除、等于阈值仍返回、非法值拒绝。与 rerank 对照时注明分数来自哪个阶段。[MCP 搜索](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L316) · [Mem0 评分](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/utils/scoring.py#L60)
 - [ ] **11. 跨分类写入需要多次 MCP 调用，成立。** 当前一个 `facts` 批次共享元数据，上游 REST 也是请求级元数据。增加与 `text`、`facts` 互斥的 `items`，每项可单独传 `text`、`category` 和 `importance`，最多 25 项。先校验整批，再按有效元数据分组请求上游。按输入索引返回 ID 和逐项结果，区分失败、未尝试和写入未确认。验收一条 MCP 调用写入 `work.pref` 和 `rp.master`，相同正文的不同分类可分别保存，部分成功或超时可定位后再重试。[MCP 新增](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L365) · [Mem0 新增请求](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/server/main.py#L205)
 
-## 未定的分类与过期策略
+改工具参数时，同步 MCP schema、AionCore 的专用工具 schema 与白名单、`memory-triage` 和测试。#3 与 #7 共用上游列表能力，#10 与路线图的 rerank 对照共同验收。
 
-- [ ] **`work.fact` 与 `work.lesson`。** 暂按「环境本来就这样」与「我踩过，未来可以据此避免复踩」区分。保留兼具两者时的归类问题，等样例再定规则。
-- [ ] **`rp.meta`。** 待决定是否为观点演变单设分类，还是用已有分类、时间和修改记录表达。
-- [ ] **`work.todo` 完成后的可见性。** 等显式过期能力落地，再确定完成时由更新或完成操作设置到期、立即隐藏还是延迟隐藏。新增时的 TTL 无法表达实际完成时间。继续让过期与分类独立。
+## 完成记录与下游反馈
 
-改工具参数时，同步 MCP schema、AionCore 的专用工具 schema 与白名单、`memory-triage` 和测试。#3 与 #7 共用上游列表能力，#1 和 #2 为自动写入及完成后的保留策略提供基础，#10 与路线图的 rerank 对照共同验收。
+- [ ] 逐条处理并验收 #1 至 #11 后，在本文追加完成记录。沿用原编号，注明实际处理结果、验证方式与证据、对应提交或部署版本，以及仍适用的限制。
+- [ ] 整批验收完成后，在交付回复中主动提醒用户，并交付一份可直接转发给下游需求方的独立反馈文档。按 #1 至 #11 对照原诉求，逐条写明结论、实际变化、使用方式和验收结果。
