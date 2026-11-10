@@ -17,6 +17,8 @@ Aion/
 - 子项目各自是独立的 Git 仓库。修改前读取对应仓库的 `AGENTS.md`，按各仓库的规则验证并分别提交。
 - 此工作区默认在各仓库的本地 `main` 提交。用户要求推送时，先核对 `origin` 指向用户自己的仓库，再直接推送到 `origin/main`。AionUi、AionCore 和 aionrs 使用 `just push origin main`。仅在用户明确要求时创建功能分支、使用其他目标分支或走 PR。
 - 保持三个仓库同级并保留目录名。AionCore 的 Cargo 依赖通过 `../aionrs` 读取本地源码，跨仓库构建时依次检查 aionrs、AionCore 和 AionUi。
+- 在 `AionUi/` 默认用 `bun run build` 或 `just build`，只构建独立 Web，产物位于 `out/web-renderer/`。仅构建 Web 时用 `bun install --frozen-lockfile --ignore-scripts` 安装依赖。Electron 预检、原生模块重建和桌面打包走 `build-mac` 等显式桌面命令。
+- Web 构建会生成 Brotli 和 gzip 资源并检查首屏体积预算。构建通过后，再用 `node scripts/pack-web-cli.js` 将 Web 产物和 AionCore 打成独立发布包。
 - 生图适配服务是独立仓库，用 `uv sync --locked` 安装依赖，`uv run --locked aion-image-mcp-service` 管理服务，`uv run --locked pytest` 验证。保持与 Aion Web 独立启停，供应商配置、凭据和任务数据存放在源码目录之外。
 - 本机正式部署范围为 Web 和 AionCore。构建与打包流程见 [AionUi 开发文档](AionUi/docs/contributing/development.md)。本地配置、凭据和临时产物放在工作区的本地目录中，避免进入源码仓库。
 
