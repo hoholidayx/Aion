@@ -25,3 +25,10 @@
 - [ ] 按同一助手分区查重，由 AionCore 校验后复用 MCP 执行 `skip`、`add` 或 `update`。先开放高置信、有原文依据的新增，再开放明确的纠正和更新。启用自动写的助手由后台负责自动结算，skill 继续处理用户显式请求和按需查询。删除仍使用现有确认，项目记忆维持当前过期策略。
 - [ ] 复用现有轮次 ID 定位原文，记录事实时间、来源轮次和关联记忆 ID。当前更新接口保留元数据，先核对现有历史能否表达更新来源。需要支持压缩和会话结束补结算时，沿用同一结算游标。只在需要跨重启恢复或协调并发时引入对应状态。对相同事实做幂等，遇到 `write_unconfirmed` 先核对服务端实际状态再重试。[轮次 ID 与完成分支](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/agent.rs)
 - [ ] 增加独立于自动 recall 的助手级自动写开关，初期默认关闭。人工抽查无依据写入、重复写入、错误覆盖和遗漏，覆盖被取消的轮次、更新冲突和重试。通过后逐步开放自动新增和自动更新。
+
+## 相关待办：按模型配置上下文窗口与最大输出
+
+当前「设置 → 模型供应商 → 配置模型」缺少这两个字段。AionRS 可从 TOML 读取 `[compact].context_window`，Aion Web 会清除独立 AionRS 的 `max_tokens` 覆盖。[模型设置](../AionUi/packages/desktop/src/renderer/pages/settings/components/AddModelModal.tsx) · [Web 运行时](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/agent.rs)
+
+- [ ] 复用现有按模型配置，为上下文窗口和单次最大输出提供独立的可选字段。空值沿用当前自动策略。AionCore 将上下文窗口传给 AionRS 的上下文预算和压缩逻辑，将最大输出交给现有的供应商协议适配。[模型配置类型](../AionCore/crates/aionui-api-types/src/provider.rs) · [上下文压缩配置](../aionrs/crates/aion-config/src/compact.rs)
+- [ ] 验收保存和回读、清空恢复默认、旧配置兼容，以及不同供应商下同名模型的隔离。检查实际对话的上下文窗口和压缩阈值，以及上游请求中的输出限制字段。
