@@ -27,8 +27,10 @@
 
 ### 4. 共享密钥的身份头诊断
 
-- [ ] **报错缺少细节成立，Aion 专用客户端未注入头的判断未复现。** AionCore 从会话的登录用户和助手定义派生两个身份头。服务密钥有效时，MCP 对分区头缺失、重复或无效统一返回 `invalid_memory_scope`。实机只读握手中，同一服务密钥缺两个头或仅带用户头返回 `400`，带齐返回 `200`。Aion 集成测试也覆盖两个助手各自的身份头。[Aion 客户端](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L184) · [Aion 集成测试](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343) · [MCP 鉴权](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/app.py#L70)
-- **修改与验收。** 保留 Aion 的单服务密钥与自动分区。复现部署问题时先区分 Aion 专用记忆工具、通用 MCP 注册和直连脚本。诊断返回缺失或无效的头名与原因，避免回显头值、凭据或正文，Aion 侧保留安全的连接错误信息。使用 NAS `profiles.<role>` 的独立客户端可以仅发送绑定角色的 Bearer，继续作为兼容路径。验收覆盖共享密钥带齐头成功、缺每个头分别可定位、角色凭据无头成功。只有专用路径仍出现失败时，按 P0 部署问题追踪。
+- [ ] **已实现，待正式部署验收。** 修复前，服务密钥有效时，MCP 对分区头缺失、重复或无效统一返回 `invalid_memory_scope`。实机只读握手中，同一服务密钥缺两个头或仅带用户头返回 `400`，带齐返回 `200`。AionCore 专用客户端会从会话的登录用户和助手定义派生两个身份头。[修复前的 MCP 鉴权](https://github.com/hoholidayx/mem0-mcp-lan/blob/4090959/src/mem0_mcp/app.py#L98) · [Aion 客户端](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L203)
+- **实现。** MCP 在凭据有效时为 HTTP `400` 的 `invalid_memory_scope` 增加 `issues`，只返回固定头名和 `missing`、`duplicate`、`invalid`、`unexpected` 原因。AionCore 复用现有 HTTP 状态，区分握手拒绝、鉴权失败和访问拒绝。诊断使用固定响应和文案，避免回显头值、凭据和上游正文。Aion 专用工具继续使用共享密钥和自动分区，仅发送 Bearer 的客户端使用固定分区的角色凭据。
+- **2026 年 11 月 11 日本地验收。** MCP `ab5c19a` 的 23 项测试通过，覆盖每个头分别缺失、同时缺失、重复、非法、角色凭据兼容和 HTTP `401`、`403`。AionCore `f91e2538` 全仓 9,455 项通过、53 项跳过。会话回归验证了助手分区、握手错误脱敏和发出写请求后连接失败仍返回 `write_unconfirmed`。
+- **部署验收。** 先更新 NAS MCP，再更新 AionCore。用只读握手检查错误头的诊断及角色凭据兼容性，再用正式发布的 AionCore 验证两个助手各自的 `memory_list`。专用路径若出现缺头，再按部署问题追查。[会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
 
 ## P1 · 可用性
 
