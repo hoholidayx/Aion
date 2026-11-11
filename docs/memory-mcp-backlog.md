@@ -43,7 +43,9 @@
 - [x] **7. `memory_list` 缺分类和元数据过滤，已部署并通过端到端验收。** 无需 `query` 即可按 `categories` 和 `filters` 列出 `work.todo`，可组合已有的分区、时间与过期条件。PostgreSQL 先筛选，再按记忆 UUID 升序分页。`limit` 取 1 到 1,000，默认 1,000。后续页用 `nextCursor` 作为 `cursor`，保留 `truncated` 表示还有下一页。批量删除沿用原有上限和截断时拒绝执行的检查。[Aion 工具适配](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs)
   - **2026 年 11 月 11 日隔离验收。** Mem0 REST 参数和 pgvector 回归 164 项通过，MCP 26 项通过，AionCore 全仓 9,456 项通过、53 项跳过。真实 MCP 经 HTTP Mem0 连接隔离 PostgreSQL 17，预置 1,105 条排序靠前的无关记录，核对分类和元数据过滤后跨页无遗漏或重复。REST 另外验证了时间、过期和会话范围、混合类型的数值字段、跨分区及篡改游标拒绝、删除游标所指记录后继续翻页，以及默认上限的 1,000 加 105 条分页。测试数据库随容器清理。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
   - **2026 年 11 月 11 日部署验收。** NAS 依次部署 Mem0 `65ec8552` 和 MCP `b0b90b8`，本机 Web 发布包搭载 AionCore `68f74dfc`。以同一发布二进制启动隔离的登录会话，挂载新版 Memory Triage Skill，由固定模型响应触发真实 MCP 调用。九轮验收覆盖分类与元数据过滤后的两页、助手隔离、跨助手和改条件的游标拒绝、篡改游标拒绝、过期与时间筛选及删除游标所指记录后继续翻页。通过正式 MCP 写入七条测试记忆，验收后两组测试分区均已清空，旧 REST `GET /memories` 也验证了分区与清理结果。Mem0、MCP 和本机 Web 健康检查通过。
-- [ ] **8. 删除预览缺少范围选择，部分成立。** `query` 预览采用默认 `all`，可返回同一角色下其他分类和凭据绑定的会话记录。它受用户和角色隔离约束，本身只读。只在预览模式支持 `categories` 与 `scope`，按 ID 和批量模式拒绝这些参数。验收限定分类和范围后候选符合条件，Aion 仍仅访问长期记忆，单条删除继续确认并回读。[MCP 删除预览](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L450) · [Aion 删除确认](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L264)
+- [ ] **8. 删除预览缺少范围选择，已实现，待正式部署验收。** `memory_delete` 的 `query` 模式支持 `categories` 和 `scope`，复用搜索并返回最多 10 条可见候选。独立 MCP 默认 `all`，有会话绑定的凭据可选 `session`。Aion 将省略的 `scope` 和 `all` 都按 `long-term` 执行，拒绝 `session`。按 ID 或批量删除时提交预览字段会返回参数错误。Memory Triage Skill 和 README 已同步。[Aion 工具适配](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs)
+  - **2026 年 11 月 11 日本地验收。** MCP 27 项测试通过，验证了分类、当前会话、长期范围、其他助手和会话、过期记录，以及非法组合未请求 Mem0。AionCore 在独立检出中通过参数回归和会话集成测试，验证预览传递的分类与范围、参数冲突拦截、取消删除及批准后重新读取并删除指定 ID。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+  - **部署顺序。** 先部署 MCP `1881a88`，再部署 AionCore `01956f60`。
 
 ## P2 · 接口一致性与效率
 
