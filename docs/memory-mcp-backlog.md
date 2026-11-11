@@ -6,8 +6,9 @@
 
 ### 1. 原地修正分类和元数据
 
-- [ ] **成立。** MCP 和 AionCore 当前只接收 ID 和正文，正文相同时提前返回，回读校验要求元数据原样保留。NAS 的 PUT 已接受独立 `metadata`，SDK 在已有元数据上做顶层合并，保留 ID 和 `created_at`，并追加更新记录。[MCP 更新](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L420) · [Mem0 SDK 更新](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L2066)
+- [x] **原问题成立，已完成本地实现和隔离验收。** 修复前，MCP 和 AionCore 只接收 ID 和正文，正文相同时提前返回，回读校验要求元数据原样保留。NAS 的 PUT 已接受独立 `metadata`，SDK 在已有元数据上做顶层合并，保留 ID 和 `created_at`，并追加更新记录。[修复前的 MCP 更新](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L420) · [Mem0 SDK 更新](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L2066)
 - **修改与验收。** 允许省略 `text`，接受 `category`、`importance`、`metadata` 的部分更新，至少指定一项变更。分类是同一分区内的元数据，归属仍由受信任的身份绑定确定。复用新增的分类、敏感值及保留字段校验。只发送本次提供的字段，回读核对本次变更和不可变的 ID、归属、创建时间。将 `rp.taste` 改为 `rp.habit` 后，正文、ID、`created_at` 和原有历史保留，分类筛选随之变化。现有历史只记录正文前后值，分类差异审计和并发条件更新需单独验证。
+- **2026 年 11 月 11 日验收。** MCP 19 项测试通过，覆盖改分类、原字段与历史保留、新旧分类查询、重复请求、越权和回读失败。AionCore 全仓 9,454 项通过、53 项跳过。另在隔离环境由 Aion 会话经实际 MCP 发起仅修改分类的请求，测试用 REST 后端确认更新保留了原记录。提交为 MCP `c362e42` 和 AionCore `e0d7996a`，待部署。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
 
 ### 2. 显式过期与查看过期记录
 
