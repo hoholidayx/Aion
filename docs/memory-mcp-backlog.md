@@ -13,14 +13,16 @@
 
 ### 2. 显式过期与查看过期记录
 
-- [x] **原生日期到期已完成本地实现和验收。** 2026 年 11 月 11 日，本项验收范围调整为 Mem0 原生的 `YYYY-MM-DD` 到期能力。记录在到期日当天仍可见，次日 UTC 零点起隐藏。[Mem0 到期判断](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L455)
+- [x] **已部署并通过端到端验收。** 2026 年 11 月 11 日，本项验收范围调整为 Mem0 原生的 `YYYY-MM-DD` 到期能力。记录在到期日当天仍可见，次日 UTC 零点起隐藏。[Mem0 到期判断](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L455)
 - **修改与验收。** 新增使用可选 `expirationDate` 透传到上游 `expiration_date`，日期校验包含实际日历合法性。省略时长期有效。搜索和列表用 `includeExpired` 对接原生 `show_expired`，保留身份与范围过滤。用可控时钟验收到期日当天可见、次日默认隐藏、显式查看过期记录，以及非法日期和跨分区拒绝。AionCore schema 和 Skill 同步支持这两个参数。
-- **2026 年 11 月 11 日验收。** MCP 21 项测试通过。AionCore 全仓 9,455 项通过、53 项跳过，会话集成测试验证 `includeExpired` 透传。MCP 提交 `7f999b6`，AionCore 提交 `69977162`，待部署。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **2026 年 11 月 11 日验收。** MCP 21 项测试通过。AionCore 全仓 9,455 项通过、53 项跳过，会话集成测试验证 `includeExpired` 透传。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **2026 年 11 月 11 日部署验收。** NAS MCP 部署 `7f999b6`，本机 Web 部署 AionCore `69977162`。用发布二进制启动隔离 Aion 会话，由固定模型响应触发工具调用，实际经过 NAS MCP 和 Mem0。当天到期与无到期日的记录默认可见，前一日到期的记录仅在显式查看过期记录时出现在搜索和列表中。验证了非法日期拒绝、按 ID 读取隐藏过期记录和跨助手隔离。测试分区记录已删除，Mem0 保留审计历史。两端健康检查通过。
 
 ### 3. 按记录时间过滤
 
 - [ ] **成立。** MCP 将 `created_at`、`updated_at` 保留为系统字段，范围操作仅接受数值。当前 pgvector 的通用范围操作也按数值转换，直接放开 ISO 时间字符串会失败。NAS 的列表接口只提供身份、条数和过期选项，当前上限为 1,000 条。[MCP 过滤器](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L200) · [pgvector 范围比较](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/vector_stores/pgvector.py#L36)
 - **修改与验收。** 增加只读的 `since`、`until` 和创建时间或更新时间选项，明确时区、旧时间戳的解释，以及起始包含、结束排除的边界。按类型将范围过滤下推到限额前，与 #7 复用列表过滤和分页。「上周记了什么」以创建时间为准，和事实发生时间分开。验收 `since: "2026-11-01"`、等于边界、跨时区、更新旧记录和超过 1,000 条的结果。
+- **实现建议。** 给 `memory_list` 和 `memory_search` 增加可选 `since`、`until`、`timeField`，默认按 `created_at`，可选 `updated_at`。日期按 UTC 零点，带时区的时间戳转换为 UTC。让 Mem0 REST、SDK 与 pgvector 共用系统时间范围条件，在候选限额前按时间类型比较。NAS 已确认 PostgreSQL 17 的 `pg_input_is_valid` 能区分有效和无效时间，可用来保护旧记录的转换。旧无时区 ISO 时间按 UTC 解释，缺失或格式无效的值在时间筛选时排除。沿用现有列表上限与截断提示，完整分页由 #7 处理。[时间戳归一化](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L329)
 
 ### 4. 共享密钥的身份头诊断
 
