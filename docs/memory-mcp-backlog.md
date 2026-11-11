@@ -20,9 +20,10 @@
 
 ### 3. 按记录时间过滤
 
-- [ ] **成立。** MCP 将 `created_at`、`updated_at` 保留为系统字段，范围操作仅接受数值。当前 pgvector 的通用范围操作也按数值转换，直接放开 ISO 时间字符串会失败。NAS 的列表接口只提供身份、条数和过期选项，当前上限为 1,000 条。[MCP 过滤器](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L200) · [pgvector 范围比较](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/vector_stores/pgvector.py#L36)
-- **修改与验收。** 增加只读的 `since`、`until` 和创建时间或更新时间选项，明确时区、旧时间戳的解释，以及起始包含、结束排除的边界。按类型将范围过滤下推到限额前，与 #7 复用列表过滤和分页。「上周记了什么」以创建时间为准，和事实发生时间分开。验收 `since: "2026-11-01"`、等于边界、跨时区、更新旧记录和超过 1,000 条的结果。
-- **实现建议。** 给 `memory_list` 和 `memory_search` 增加可选 `since`、`until`、`timeField`，默认按 `created_at`，可选 `updated_at`。日期按 UTC 零点，带时区的时间戳转换为 UTC。让 Mem0 REST、SDK 与 pgvector 共用系统时间范围条件，在候选限额前按时间类型比较。NAS 已确认 PostgreSQL 17 的 `pg_input_is_valid` 能区分有效和无效时间，可用来保护旧记录的转换。旧无时区 ISO 时间按 UTC 解释，缺失或格式无效的值在时间筛选时排除。沿用现有列表上限与截断提示，完整分页由 #7 处理。[时间戳归一化](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L329)
+- [ ] **已实现并通过隔离验证，待部署。** 修复前，MCP 将 `created_at`、`updated_at` 保留为系统字段，pgvector 的通用范围操作按数值转换，NAS 列表也没有时间过滤入口。[修复前的 MCP 过滤器](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L200) · [修复前的 pgvector 范围比较](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/vector_stores/pgvector.py#L36)
+- **实现。** `memory_list` 和 `memory_search` 接收可选 `since`（包含）、`until`（排除）和 `timeField`，默认按 `created_at`，可选 `updated_at`。日期按 UTC 零点，带时区的时间戳转换到 UTC，旧无时区的 ISO 时间按 UTC 解释。缺失或无效时间只在按该字段筛选时排除。列表和搜索在候选限额前过滤，带时间范围的语义搜索在范围内按向量距离精确排序，避免 HNSW 漏掉窄时间范围里的记录。列表保留 1,000 条上限与截断提示，分页由 #7 跟进。[Aion 工具参数](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L111)
+- **2026 年 11 月 11 日验收。** Mem0 REST 参数与 pgvector 回归 163 项通过，MCP 23 项通过，AionCore 全仓 9,455 项通过、53 项跳过。用隔离的 PostgreSQL 17 和真实 pgvector 验证 REST 列表、语义及关键词查询。预置 1,105 条范围外记录，核对起止边界、跨时区同一时刻、单端范围、旧记录的更新时间、无效时间、过期选项和身份过滤。测试数据库已随容器清理。[Aion 会话参数透传回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **待部署。** 依次部署 Mem0 `02b4b6ad`、MCP `4090959` 和 AionCore `a8c4aa7c`，同步 Memory Triage Skill 后复验实际调用链。旧 REST 会忽略新增的查询参数，升级 Mem0 后再启用上层工具参数。
 
 ### 4. 共享密钥的身份头诊断
 
