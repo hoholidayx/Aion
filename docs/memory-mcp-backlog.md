@@ -13,9 +13,9 @@
 
 ### 2. 显式过期与查看过期记录
 
-- [ ] **成立，原生能力有粒度限制。** MCP 的新增没有过期参数，公开查询也没有 `includeExpired`。NAS 的 `expiration_date` 只接受 `YYYY-MM-DD`，记录在到期日当天仍可见，按 UTC 日期判断过期。现有内部 `show_expired` 可用于读取过期记录。[MCP 可见性](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L143) · [Mem0 到期判断](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L455)
-- **修改与验收。** 可先开放显式日期和 `includeExpired`，默认继续隐藏过期记录，未设置时继续长期有效。精确 TTL 需要新增 UTC 时间戳语义，支持 `expiresIn` 或带时区的 `expiresAt`，在检索和列表限额前过滤，并和按 ID 读取保持一致。用可控时钟验证 59 秒仍可见、满 60 秒默认隐藏、`list(includeExpired=true)` 仍能看到且跨分区不可见。只完成日期级方案时，60 秒验收继续保留。
-- **下一步方案。** 以 60 秒验收为目标，在 Mem0 REST 和 SDK 增加独立的精确到期字段，存储层按 UTC 绝对时间比较。旧 `expiration_date` 继续以到期日次日 UTC 零点为边界。MCP 将互斥的正整数 `expiresIn` 和带时区的 `expiresAt` 转成同一上游字段，将显式 `includeExpired` 传到 `show_expired`。当前 SDK 先取限量候选再过滤，需让 pgvector 在取候选时就排除过期记录。验收增加「过期记录多于候选上限时仍能返回未过期记录」，并同步 AionCore schema 和 Skill。[当前列表候选获取](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L1337) · [当前搜索候选获取](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L1655)
+- [x] **原生日期到期已完成本地实现和验收。** 2026 年 11 月 11 日，本项验收范围调整为 Mem0 原生的 `YYYY-MM-DD` 到期能力。记录在到期日当天仍可见，次日 UTC 零点起隐藏。[Mem0 到期判断](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L455)
+- **修改与验收。** 新增使用可选 `expirationDate` 透传到上游 `expiration_date`，日期校验包含实际日历合法性。省略时长期有效。搜索和列表用 `includeExpired` 对接原生 `show_expired`，保留身份与范围过滤。用可控时钟验收到期日当天可见、次日默认隐藏、显式查看过期记录，以及非法日期和跨分区拒绝。AionCore schema 和 Skill 同步支持这两个参数。
+- **2026 年 11 月 11 日验收。** MCP 21 项测试通过。AionCore 全仓 9,455 项通过、53 项跳过，会话集成测试验证 `includeExpired` 透传。MCP 提交 `7f999b6`，AionCore 提交 `69977162`，待部署。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
 
 ### 3. 按记录时间过滤
 
