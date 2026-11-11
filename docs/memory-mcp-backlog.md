@@ -6,14 +6,16 @@
 
 ### 1. 原地修正分类和元数据
 
-- [x] **原问题成立，已完成本地实现和隔离验收。** 修复前，MCP 和 AionCore 只接收 ID 和正文，正文相同时提前返回，回读校验要求元数据原样保留。NAS 的 PUT 已接受独立 `metadata`，SDK 在已有元数据上做顶层合并，保留 ID 和 `created_at`，并追加更新记录。[修复前的 MCP 更新](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L420) · [Mem0 SDK 更新](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L2066)
+- [x] **已部署并通过端到端验收。** 修复前，MCP 和 AionCore 只接收 ID 和正文，正文相同时提前返回，回读校验要求元数据原样保留。NAS 的 PUT 已接受独立 `metadata`，SDK 在已有元数据上做顶层合并，保留 ID 和 `created_at`，并追加更新记录。[修复前的 MCP 更新](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L420) · [Mem0 SDK 更新](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L2066)
 - **修改与验收。** 允许省略 `text`，接受 `category`、`importance`、`metadata` 的部分更新，至少指定一项变更。分类是同一分区内的元数据，归属仍由受信任的身份绑定确定。复用新增的分类、敏感值及保留字段校验。只发送本次提供的字段，回读核对本次变更和不可变的 ID、归属、创建时间。将 `rp.taste` 改为 `rp.habit` 后，正文、ID、`created_at` 和原有历史保留，分类筛选随之变化。现有历史只记录正文前后值，分类差异审计和并发条件更新需单独验证。
-- **2026 年 11 月 11 日验收。** MCP 19 项测试通过，覆盖改分类、原字段与历史保留、新旧分类查询、重复请求、越权和回读失败。AionCore 全仓 9,454 项通过、53 项跳过。另在隔离环境由 Aion 会话经实际 MCP 发起仅修改分类的请求，测试用 REST 后端确认更新保留了原记录。提交为 MCP `c362e42` 和 AionCore `e0d7996a`，待部署。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **2026 年 11 月 11 日验收。** MCP 19 项测试通过，覆盖改分类、原字段与历史保留、新旧分类查询、重复请求、越权和回读失败。AionCore 全仓 9,454 项通过、53 项跳过。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **2026 年 11 月 11 日部署验收。** NAS MCP 部署 `c362e42`，本机 Web 部署 AionCore `e0d7996a`。使用同一发布二进制启动隔离 Aion 会话，由测试模型发起分类更新，实际请求经过 NAS MCP 和 Mem0。核对了原 ID、正文、创建时间、归属、原有历史、新旧分类查询及重复提交。测试分区的记录已通过 MCP 删除，Mem0 保留正常审计历史。两端健康检查通过。
 
 ### 2. 显式过期与查看过期记录
 
 - [ ] **成立，原生能力有粒度限制。** MCP 的新增没有过期参数，公开查询也没有 `includeExpired`。NAS 的 `expiration_date` 只接受 `YYYY-MM-DD`，记录在到期日当天仍可见，按 UTC 日期判断过期。现有内部 `show_expired` 可用于读取过期记录。[MCP 可见性](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L143) · [Mem0 到期判断](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L455)
 - **修改与验收。** 可先开放显式日期和 `includeExpired`，默认继续隐藏过期记录，未设置时继续长期有效。精确 TTL 需要新增 UTC 时间戳语义，支持 `expiresIn` 或带时区的 `expiresAt`，在检索和列表限额前过滤，并和按 ID 读取保持一致。用可控时钟验证 59 秒仍可见、满 60 秒默认隐藏、`list(includeExpired=true)` 仍能看到且跨分区不可见。只完成日期级方案时，60 秒验收继续保留。
+- **下一步方案。** 以 60 秒验收为目标，在 Mem0 REST 和 SDK 增加独立的精确到期字段，存储层按 UTC 绝对时间比较。旧 `expiration_date` 继续以到期日次日 UTC 零点为边界。MCP 将互斥的正整数 `expiresIn` 和带时区的 `expiresAt` 转成同一上游字段，将显式 `includeExpired` 传到 `show_expired`。当前 SDK 先取限量候选再过滤，需让 pgvector 在取候选时就排除过期记录。验收增加「过期记录多于候选上限时仍能返回未过期记录」，并同步 AionCore schema 和 Skill。[当前列表候选获取](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L1337) · [当前搜索候选获取](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/memory/main.py#L1655)
 
 ### 3. 按记录时间过滤
 
