@@ -27,14 +27,14 @@
 
 ### 4. 共享密钥的身份头诊断
 
-- [ ] **已实现，待正式部署验收。** 修复前，服务密钥有效时，MCP 对分区头缺失、重复或无效统一返回 `invalid_memory_scope`。实机只读握手中，同一服务密钥缺两个头或仅带用户头返回 `400`，带齐返回 `200`。AionCore 专用客户端会从会话的登录用户和助手定义派生两个身份头。[修复前的 MCP 鉴权](https://github.com/hoholidayx/mem0-mcp-lan/blob/4090959/src/mem0_mcp/app.py#L98) · [Aion 客户端](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L203)
+- [x] **已部署并通过端到端验收。** 修复前，服务密钥有效时，MCP 对分区头缺失、重复或无效统一返回 `invalid_memory_scope`。实机只读握手中，同一服务密钥缺两个头或仅带用户头返回 `400`，带齐返回 `200`。AionCore 专用客户端会从会话的登录用户和助手定义派生两个身份头。[修复前的 MCP 鉴权](https://github.com/hoholidayx/mem0-mcp-lan/blob/4090959/src/mem0_mcp/app.py#L98) · [Aion 客户端](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L203)
 - **实现。** MCP 在凭据有效时为 HTTP `400` 的 `invalid_memory_scope` 增加 `issues`，只返回固定头名和 `missing`、`duplicate`、`invalid`、`unexpected` 原因。AionCore 复用现有 HTTP 状态，区分握手拒绝、鉴权失败和访问拒绝。诊断使用固定响应和文案，避免回显头值、凭据和上游正文。Aion 专用工具继续使用共享密钥和自动分区，仅发送 Bearer 的客户端使用固定分区的角色凭据。
 - **2026 年 11 月 11 日本地验收。** MCP `ab5c19a` 的 23 项测试通过，覆盖每个头分别缺失、同时缺失、重复、非法、角色凭据兼容和 HTTP `401`、`403`。AionCore `f91e2538` 全仓 9,455 项通过、53 项跳过。会话回归验证了助手分区、握手错误脱敏和发出写请求后连接失败仍返回 `write_unconfirmed`。
-- **部署验收。** 先更新 NAS MCP，再更新 AionCore。用只读握手检查错误头的诊断及角色凭据兼容性，再用正式发布的 AionCore 验证两个助手各自的 `memory_list`。专用路径若出现缺头，再按部署问题追查。[会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+- **2026 年 11 月 11 日部署验收。** NAS MCP 部署 `ab5c19a`，本机 Web 部署 AionCore `f91e2538`。NAS 实测共享密钥带齐身份头和角色凭据仅带 Bearer 都可握手，缺失、重复、非法和多余身份头返回对应诊断，错误凭据及受限来源分别返回 `401`、`403`。使用正式发布二进制启动隔离 Aion 会话，两个助手各自只读到本分区的测试记忆，真实握手 `400` 和 `401` 分别返回固定诊断。两条测试记忆已删除，两组测试分区为空，服务健康检查通过。[会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
 
 ## P1 · 可用性
 
-- [ ] **5. 自定义分类默认 importance，成立。** 目前仅内置分类有默认值。复用新增时的元数据归一化，工具字段和元数据中的显式值优先，其次按分类精确配置、最长前缀、兜底的顺序选择。保留显式 `0`。验收 `work.pref` 省略 `importance` 后回读仍有值，显式值优先，内置分类保持原默认。[新增与默认值](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L365)
+- [ ] **5. 自定义分类默认 importance，成立。** 新增时只为内置分类补值。建议在 MCP 现有配置文件加入可选 `importance_defaults`，复用新增时的元数据归一化。顺序为工具字段、`metadata.importance`、配置的精确分类、内置分类默认值、最长匹配的分类前缀、兜底 `0.5`。保留显式 `0`。未分类的新记忆仍按调用方提供的字段写入，已有记录按原更新语义处理。验收 `work.pref` 省略分数时能落库并回读，覆盖优先级、配置非法值以及编辑分类时原分数保留。[当前默认值](https://github.com/hoholidayx/mem0-mcp-lan/blob/4090959/src/mem0_mcp/tools.py#L312)
 - [ ] **6. 参数校验缺少字段诊断，成立。** MCP 的 Pydantic 校验和 Aion 的前置白名单都可能先返回通用错误。返回有限长度、脱敏的字段路径和稳定的错误类型或安全文案，避免回显参数值、原始 `msg`、`ctx` 和任意长字段名。验收短字段拼错可定位，敏感输入不出现在返回和日志。`path` 与 `skill_path` 的例子走 Aion Skill HTTP/CLI，由 #9 覆盖。[MCP 参数校验](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/app.py#L165) · [Aion 参数白名单](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L103)
 - [ ] **7. `memory_list` 缺分类和元数据过滤，成立。** 当前公开参数仅支持 `scope`，NAS 列表接口没有元数据过滤或游标。复用 search 的过滤白名单和身份约束，给 list 增加 `categories`、`filters`、`includeExpired`，在上游限额前过滤，并提供确定性排序与分页。验收无需 query 即可列 `work.todo`，大量记录跨页不漏不重。分页能力上线前，继续明确返回截断状态。[MCP 列表](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L336) · [Mem0 列表 REST](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/server/main.py#L470)
 - [ ] **8. 删除预览缺少范围选择，部分成立。** `query` 预览采用默认 `all`，可返回同一角色下其他分类和凭据绑定的会话记录。它受用户和角色隔离约束，本身只读。只在预览模式支持 `categories` 与 `scope`，按 ID 和批量模式拒绝这些参数。验收限定分类和范围后候选符合条件，Aion 仍仅访问长期记忆，单条删除继续确认并回读。[MCP 删除预览](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L450) · [Aion 删除确认](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L264)
