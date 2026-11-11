@@ -49,8 +49,9 @@
 
 ## P2 · 接口一致性与效率
 
-- [ ] **9. Skill CLI 路径参数不一致，已实现，待正式部署。** `config skills import` 和 `scan` 均接受 `path`。导入兼容 `skill_path`，扫描兼容 `folder_path`。同时提供 `path` 与旧字段会返回 HTTP 400。CLI 帮助和能力发现均推荐 `path`。[Skill 请求类型](../AionCore/crates/aionui-api-types/src/skill.rs#L61) · [CLI 能力发现](../AionCore/crates/aionui-app/src/commands/config_capabilities.rs#L79)
+- [x] **9. Skill CLI 路径参数不一致，已部署并通过端到端验收。** `config skills import` 和 `scan` 均接受 `path`。导入兼容 `skill_path`，扫描兼容 `folder_path`。同时提供 `path` 与旧字段会返回 HTTP 400。CLI 帮助和能力发现均推荐 `path`。[Skill 请求类型](../AionCore/crates/aionui-api-types/src/skill.rs#L61) · [CLI 能力发现](../AionCore/crates/aionui-app/src/commands/config_capabilities.rs#L79)
   - **2026 年 11 月 11 日本地验收。** AionCore `e5644822` 的 97 项相关测试通过。用本地构建的 CLI 连接隔离后端，两条命令用新旧字段均可处理含空格的路径，新旧字段并传时拒绝且导入列表未变化。两个子命令的 `--help` 已实测。
+  - **2026 年 11 月 12 日部署验收。** 本机正式 Web 使用 AionCore `e5644822` 和 AionUi `a35f3ce1f`。使用发布版 CLI 连接同一二进制启动的隔离后端，验证两条命令的新旧字段、含空格的路径、混用字段拒绝及导入目录回读。两个子命令的帮助和能力发现均列出了 `path` 及对应旧字段。正式 Web 健康检查通过，隔离数据已清理。
 - [ ] **10. MCP 无可调相关度阈值，成立。** NAS 已有上游 `threshold`，它筛的是混合评分前的语义分。新增 `minScore` 时定义为返回结果 `score` 的下限，接受 0 到 1，省略时沿用当前行为。验收低于阈值被排除、等于阈值仍返回、非法值拒绝。与 rerank 对照时注明分数来自哪个阶段。[MCP 搜索](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L316) · [Mem0 评分](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/mem0/utils/scoring.py#L60)
 - [ ] **11. 跨分类写入需要多次 MCP 调用，成立。** 当前一个 `facts` 批次共享元数据，上游 REST 也是请求级元数据。增加与 `text`、`facts` 互斥的 `items`，每项可单独传 `text`、`category` 和 `importance`，最多 25 项。先校验整批，再按有效元数据分组请求上游。按输入索引返回 ID 和逐项结果，区分失败、未尝试和写入未确认。验收一条 MCP 调用写入 `work.pref` 和 `rp.master`，相同正文的不同分类可分别保存，部分成功或超时可定位后再重试。[MCP 新增](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L365) · [Mem0 新增请求](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/server/main.py#L205)
 
