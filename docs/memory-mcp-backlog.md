@@ -34,10 +34,12 @@
 
 ## P1 · 可用性
 
-- [x] **5. 自定义分类默认 importance，已实现并通过本地验收。** 新增有分类的记忆时，依次使用工具字段、`metadata.importance`、内置分类默认值或自定义分类兜底 `0.5`。分类可自定义，业务可通过新增或更新显式给出 `0` 到 `1` 的分数。未分类的新记忆只写入调用方指定的分数，更新省略两处 `importance` 时保留原值。Memory Triage Skill 与 MCP、AionCore 的工具 schema 均说明了该规则。MCP 24 项测试通过，覆盖 `work.pref` 写入回读、显式 `0`、元数据改分和编辑分类保留原分数。[Aion 工具参数](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L93)
+- [x] **5. 自定义分类默认 importance，已部署并通过端到端验收。** 新增有分类的记忆时，依次使用工具字段、`metadata.importance`、内置分类默认值或自定义分类兜底 `0.5`。分类可自定义，业务可通过新增或更新显式给出 `0` 到 `1` 的分数。未分类的新记忆只写入调用方指定的分数，更新省略两处 `importance` 时保留原值。Memory Triage Skill 与 MCP、AionCore 的工具 schema 均说明了该规则。MCP 24 项测试通过，覆盖 `work.pref` 写入回读、显式 `0`、元数据改分和编辑分类保留原分数。[Aion 工具参数](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L93)
   - **2026 年 11 月 11 日验证。** MCP `464fa97` 与 AionCore `4451f640` 已本地提交。AionCore 全仓 9,455 项通过、53 项跳过。
-- [ ] **6. 参数校验缺少字段诊断，已实现，待正式部署验收。** MCP 的 `invalid_arguments` 与 AionCore 的 `invalid_memory_arguments` 增加 `issues`。MCP 最多返回五条，Aion 前置检查返回首条。诊断包含已知字段路径、数组索引和固定原因，短字段名只有唯一匹配合法字段时才返回拼写建议。参数值、未知键及 Pydantic 原始报错均省略。Skill HTTP/CLI 的路径字段由 #9 跟进。[Aion 参数校验](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L132)
+  - **2026 年 11 月 11 日部署验收。** 随 NAS MCP `7ff4f9e` 和本机 AionCore `9de065b1` 发布。隔离助手挂载新版 Memory Triage Skill 后，通过实际链路写入 `work.pref` 并回读 `0.5`，显式 `0` 覆盖元数据中的分数，编辑分类后仍保留 `0`。
+- [x] **6. 参数校验缺少字段诊断，已部署并通过端到端验收。** MCP 的 `invalid_arguments` 与 AionCore 的 `invalid_memory_arguments` 增加 `issues`。MCP 最多返回五条，Aion 前置检查返回首条。诊断包含已知字段路径、数组索引和固定原因，短字段名只有唯一匹配合法字段时才返回拼写建议。参数值、未知键及 Pydantic 原始报错均省略。Skill HTTP/CLI 的路径字段由 #9 跟进。[Aion 参数校验](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L132)
   - **2026 年 11 月 11 日本地验收。** MCP `7ff4f9e` 的 25 项测试通过，覆盖字段拼写、类型、范围、字段组合及脱敏。AionCore `9de065b1` 全仓 9,456 项通过、53 项跳过。会话回归核对了 MCP 诊断透传，并确认冲突的删除参数在 MCP 请求和删除确认之前被拒绝。[会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
+  - **2026 年 11 月 11 日部署验收。** 发布版 AionCore 在隔离会话中实际连接 NAS MCP 与 Mem0，覆盖 `qurey`、错误类型的 `limit` 和 `facts[1]`、越界 `scope`、删除参数冲突与五条诊断上限。测试用的字段名和值未出现在诊断和运行日志中，冲突的删除请求未触发删除确认，记录仍可读。验收后通过 MCP 删除测试记录并确认测试分区为空。两端健康检查通过。
 - [ ] **7. `memory_list` 缺分类和元数据过滤，成立。** 当前公开参数仅支持 `scope`，NAS 列表接口没有元数据过滤或游标。复用 search 的过滤白名单和身份约束，给 list 增加 `categories`、`filters`、`includeExpired`，在上游限额前过滤，并提供确定性排序与分页。验收无需 query 即可列 `work.todo`，大量记录跨页不漏不重。分页能力上线前，继续明确返回截断状态。[MCP 列表](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L336) · [Mem0 列表 REST](https://github.com/hoholidayx/mem0/blob/a6adc944c818d590cf93cfba69bfe79e49bb6c11/server/main.py#L470)
 - [ ] **8. 删除预览缺少范围选择，部分成立。** `query` 预览采用默认 `all`，可返回同一角色下其他分类和凭据绑定的会话记录。它受用户和角色隔离约束，本身只读。只在预览模式支持 `categories` 与 `scope`，按 ID 和批量模式拒绝这些参数。验收限定分类和范围后候选符合条件，Aion 仍仅访问长期记忆，单条删除继续确认并回读。[MCP 删除预览](https://github.com/hoholidayx/mem0-mcp-lan/blob/2557840/src/mem0_mcp/tools.py#L450) · [Aion 删除确认](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs#L264)
 
