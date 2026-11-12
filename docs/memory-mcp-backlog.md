@@ -59,7 +59,9 @@
   - **2026 年 11 月 12 日隔离验收。** MCP `13f876b` 的 34 项测试通过，覆盖整批拒绝、跨分类与跨助手隔离、部分写入和总超时。AionCore `e9ef6775` 的两项会话集成测试和相关 Clippy 检查通过，核对了模型侧 schema、参数透传和逐项回执。临时 MCP 连接 NAS Mem0，在约 0.9 秒内确认了 25 项输入对应的两条真实记录，回读核对同文跨分类、显式权重 `0`、会话范围和到期日。另模拟上游提交一条后返回 HTTP 400，回读确认了部分写入，后续组未发送。四条隔离记录和临时容器均已清理。[Aion 会话回归](../AionCore/crates/aionui-app/tests/assistant_follow_e2e.rs#L343)
   - **2026 年 11 月 12 日部署验收。** NAS MCP 部署 `13f876b`，连接 Mem0 `65ec8552`。本机 Web 发布包包含 AionCore `8aa16fc9`（含 `e9ef6775`）和 AionUi `a35f3ce1f`。以正式后端二进制启动隔离登录实例，挂载新版 Memory Triage Skill，由固定模型响应触发九轮工具调用。25 项获得 25 条索引回执，对应 24 条实际记录。回读核对分类、`0.5` 和显式 `0`、到期日和长期范围。验证了非法权重、输入模式冲突、超过 25 项均无写入，另一助手无法列出或按 ID 读取记录，旧 `text` 与 `facts` 调用成功。用同一 MCP 发布镜像在隔离端口模拟上游提交后返回 HTTP 400 或延迟响应，回读均确认部分写入，后续组均未发送。延迟场景在约 25 秒返回逐项状态。测试分区已清空，Mem0、MCP 和本机 Web 健康检查通过。
 
-改工具参数时，同步 MCP schema、AionCore 的专用工具 schema 与白名单、`memory-triage` 和测试。#3 与 #7 共用上游列表能力。评估 rerank 时，使用 #10 记录的当前混合分作为对照，并注明阈值应用在哪个阶段。
+改工具参数时，同步 MCP schema、AionCore 的专用工具 schema 与白名单、`memory-common` 和测试。#3 与 #7 共用上游列表能力。评估 rerank 时，使用 #10 记录的当前混合分作为对照，并注明阈值应用在哪个阶段。
+
+2026 年 11 月 12 日，通用记忆 Skill 从 `memory-triage` 改名为 `memory-common`。Aion 按名称挂载，使用新版时导入 `memory-common` 目录并在目标助手中选择它。[通用记忆 Skill](../../mem0-mcp-lan/skills/memory-common/SKILL.md)
 
 ## 完成记录与下游反馈
 

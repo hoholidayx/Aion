@@ -1,13 +1,13 @@
 # Aion 记忆优化待办
 
-2026 年 11 月 10 日更新。以下任务按依赖顺序排列。
+2026 年 11 月 12 日更新。以下任务按依赖顺序排列。
 
 接口缺口、诊断和分类问题单独记录在 [记忆 MCP 与 Skill 接口待办](memory-mcp-backlog.md)。
 
 ## 当前能力
 
 - 登录 WebUI 后，AionRS 助手可以通过 AionCore 使用 Mem0 的查询、写入、更新和单条删除工具。AionCore 与 MCP 配置同一份服务密钥，AionCore 从登录用户和助手定义自动确定长期记忆分区。助手仍独立启用，单条删除沿用用户确认。需要沿用旧分区时，配置不含凭据的分区映射。[配置与分区](../AionCore/ARCHITECTURE.md#assistant-long-term-memory) · [工具接入](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/mem0.rs)
-- `memory-triage` 已定义何时查、记和改。挂载后由主对话模型在轮内按需调用。MCP 用 `infer=false` 写入已经提取的事实，检索结果按现有分数排序。[Triage skill](https://github.com/hoholidayx/mem0-mcp-lan/blob/25578407aeb9e3bf549fe7fc558bc4384e5b5ad7/skills/memory-triage/SKILL.md) · [MCP 工具实现](https://github.com/hoholidayx/mem0-mcp-lan/blob/25578407aeb9e3bf549fe7fc558bc4384e5b5ad7/src/mem0_mcp/tools.py)
+- `memory-common` 已定义何时查、记和改。挂载后由主对话模型在轮内按需调用。MCP 用 `infer=false` 写入已经提取的事实，检索结果按现有分数排序。[通用记忆 Skill](../../mem0-mcp-lan/skills/memory-common/SKILL.md) · [MCP 工具实现](https://github.com/hoholidayx/mem0-mcp-lan/blob/25578407aeb9e3bf549fe7fc558bc4384e5b5ad7/src/mem0_mcp/tools.py)
 
 ## 1. 自动 recall 和检索追踪
 
@@ -23,7 +23,7 @@
 
 ## 3. 自动记忆与可追溯写入
 
-- [ ] 在成功轮次结束后异步读取新增原文，先运行只产候选模式。沿用 triage 的长期价值、新颖性、事实依据和安全规则。决策模型返回 `skip` 或候选事实、分类与来源证据。外部模型输入和写入前分别做安全校验，自动 recall 和自动写可共用模型配置，各自维护独立的提示词、输出约束和超时。
+- [ ] 在成功轮次结束后异步读取新增原文，先运行只产候选模式。沿用 `memory-common` 的长期价值、新颖性、事实依据和安全规则。决策模型返回 `skip` 或候选事实、分类与来源证据。外部模型输入和写入前分别做安全校验，自动 recall 和自动写可共用模型配置，各自维护独立的提示词、输出约束和超时。
 - [ ] 按同一助手分区查重，由 AionCore 校验后复用 MCP 执行 `skip`、`add` 或 `update`。先开放高置信、有原文依据的新增，再开放明确的纠正和更新。启用自动写的助手由后台负责自动结算，skill 继续处理用户显式请求和按需查询。删除仍使用现有确认，项目记忆维持当前过期策略。
 - [ ] 复用现有轮次 ID 定位原文，记录事实时间、来源轮次和关联记忆 ID。当前更新接口保留元数据，先核对现有历史能否表达更新来源。需要支持压缩和会话结束补结算时，沿用同一结算游标。只在需要跨重启恢复或协调并发时引入对应状态。对相同事实做幂等，遇到 `write_unconfirmed` 先核对服务端实际状态再重试。[轮次 ID 与完成分支](../AionCore/crates/aionui-ai-agent/src/manager/aionrs/agent.rs)
 - [ ] 增加独立于自动 recall 的助手级自动写开关，初期默认关闭。人工抽查无依据写入、重复写入、错误覆盖和遗漏，覆盖被取消的轮次、更新冲突和重试。通过后逐步开放自动新增和自动更新。
