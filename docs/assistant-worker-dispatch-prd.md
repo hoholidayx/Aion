@@ -10,7 +10,7 @@
 
 ## 首版范围与交互
 
-- **固定聊天。** 首版建议先开放内置 Bot `novia`，数据从第一天按用户、Bot 和固定会话归属保存。手机浏览器打开后进入最新消息，向上加载历史，刷新、换设备和重启后继续同一对话。自建 Bot、切换入口和每 Bot 独立看板可在闭环稳定后加入。 [Hermes Bot Mode](https://hermes-agent.nousresearch.com/docs/user-guide/bot-mode) · [Aion 消息列表](../AionUi/packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx)
+- **固定聊天。** 首版建议先开放内置 Bot `novia`，数据从第一天按用户、Bot 和固定会话归属保存。手机打开 Novia 后进入最新消息，向上加载历史，切回前台、换设备和重启后继续同一对话。自建 Bot、切换入口和每 Bot 独立看板可在闭环稳定后加入。 [Hermes Bot Mode](https://hermes-agent.nousresearch.com/docs/user-guide/bot-mode) · [Aion 消息列表](../AionUi/packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx)
 - **上下文管理。** 原始消息、附件和交办引用完整保留。首个闭环从最近消息构造聊天上下文。需要压缩时，在同一会话保存摘要和覆盖边界，之后使用摘要与最近消息。对话里的 `/new`、`/clear`、`/reset` 与 `/compact` 统一走上下文压缩入口，历史仍可回查。
 - **交办与结果。** 用户通过聊天交办、补充、追问、撤回或审批。Bot 确认已受理后继续聊天。任务完成、失败或无法自动恢复时，在原对话给出自然语言反馈与可访问的成果。用户只在追问或调试时查看交办详情。
 - **定时与记忆。** Bot 管理定时任务属于首版核心能力，在首条手动交办跑通后接入同一条链路。长期记忆复用已有 Mem0 MCP，按 Bot 归属访问，固定会话回查提供轻量入口和兜底。
@@ -19,28 +19,35 @@
 
 | 部分 | 建议选型 | 落地边界 |
 | --- | --- | --- |
-| 运行方式 | **Node.js 24 LTS + TypeScript + pnpm** | 一个应用工程和一个 Novia 服务进程。服务端和 Web 共用语言与数据类型，执行端由适配器独立启动和管理。 |
-| 前端 | **React + Vite**，移动优先的单页 Web | 开发时用 Vite，发布时由 Novia 服务同源提供静态页面和 API。先实现聊天、审批、结果和历史分页。 [Vite 静态构建](https://vite.dev/guide/build.html) |
-| 服务端 | **Fastify + HTTP JSON + SSE** | HTTP 提交输入和查询历史。SSE 推送新消息和状态，重连按持久消息游标补读。聊天、调度和 Worker 对接在同一进程内按模块组织。 [Fastify TypeScript 文档](https://fastify.dev/docs/latest/Reference/TypeScript/) |
+| 运行方式 | **Node.js 24 LTS + TypeScript + pnpm** | 一个应用工程和一个 Novia 服务进程。服务端和客户端共用语言与数据类型，执行端由适配器独立启动和管理。 |
+| 移动端 | **Expo + React Native + TypeScript** | 首版推荐用原生开发构建在一台常用手机验证固定聊天、历史、审批和通知跳转。需要浏览器入口时先评估同一 Expo 工程的 Web 导出。 [Expo 开发构建](https://docs.expo.dev/develop/development-builds/introduction/) · [Expo Web 发布](https://docs.expo.dev/guides/publishing-websites/) |
+| 服务端 | **Fastify + HTTP JSON + SSE** | HTTP 提交输入和查询历史。客户端在前台通过 SSE 收消息和状态，重连按持久消息游标补读。聊天、调度和 Worker 对接在同一进程内按模块组织。 [Fastify TypeScript 文档](https://fastify.dev/docs/latest/Reference/TypeScript/) |
 | 持久化 | **SQLite + `node:sqlite`** | 用短事务保存聊天、交办、审批、定时触发和待反馈事件。交办表兼作持久队列，同一事务提交终态与待反馈。固定并验证 Node 24 版本，`node:sqlite` 在该版本线处于发布候选阶段。 [Node 24 SQLite 文档](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html) · [SQLite 事务隔离](https://www.sqlite.org/isolation.html) |
 | 聊天模型 | **一个可配置的模型 HTTP API** | 在 Novia 里完成聊天、结构化交办意图和结果转述。服务端校验模型输出的动作、目标和权限。路由决策与状态更新写成可测试的独立函数，首版单 Worker 可按配置派发。 |
 | 首个 Worker | **本机 `codex app-server`，经 stdio JSON-RPC** | 沿用 Codex 原生配置和登录。保存 thread ID 和 turn ID，按原线程续接、订阅终态并回答对应审批请求。固定验收通过的 CLI 版本。 [OpenAI Docs 的 Codex App Server](https://learn.chatgpt.com/docs/app-server) |
 
-首版部署目标是单机和单用户。应用运行依赖收敛为 Node.js、内置 SQLite 和已安装的 Worker。服务端完成登录与数据归属校验，浏览器只访问 Novia，Worker 连接和凭据留在服务端。工作目录、执行端及权限由服务端配置。后台服务按 Aion 的本机运维约定提供启动、停止、重启、状态和健康检查。
+首版部署目标是单机和单用户。服务端运行依赖收敛为 Node.js、内置 SQLite 和已安装的 Worker。手机只访问 Novia API，服务端完成登录与数据归属校验。Worker 连接、凭据、工作目录和权限由服务端管理。后台服务按 Aion 的本机运维约定提供启动、停止、重启、状态和健康检查。
+
+### 原生客户端与通知
+
+- App 在前台用 `expo/fetch` 读取 SSE，切回前台或重连后从服务端按游标补读已落盘消息。移动端通过 HTTPS 调用 API，登录凭据保存在 `expo-secure-store`。 [Expo 流式 Fetch](https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api) · [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
+- 交办结果和待审批问题先写入原对话，再用 `expo-notifications` 提醒手机用户。通知使用简短提示和消息标识，点击后打开原对话并从服务端读取详情。手机锁屏、App 退出或通知权限关闭期间，交办和定时仍由服务端执行，打开 App 后可补读结果。 [Expo 推送配置](https://docs.expo.dev/push-notifications/push-notifications-setup/)
+- 第一个闭环用开发构建连到实际服务。随后在真机验证锁屏收通知、点击通知回到原对话、拒绝通知权限后回前台补读。远程推送使用开发构建和目标平台的推送凭据。 [Expo 开发构建 FAQ](https://docs.expo.dev/develop/development-builds/faq/#remote-push-notifications)
 
 ## 架构图
 
 ```mermaid
 flowchart LR
     User["用户"]
-    Web["Novia 聊天 Web"]
+    App["Novia 移动 App · Expo"]
     Chat["聊天 · 意图 · 汇报"]
     Dispatch["持久受理 · 调度 · 审批关联"]
     Store[("SQLite")]
     Codex["Codex Worker"]
     Harness["DeepSeek Harness Worker · 后续"]
-    User <-->|交办 · 决定 · 结果| Web
-    Web <-->|HTTP · SSE| Chat
+    User <-->|交办 · 决定 · 结果| App
+    App <-->|HTTP · SSE| Chat
+    Chat -.->|结果 · 待审批通知| App
     Chat <-->|交办 · 反馈| Dispatch
     Chat --- Store
     Dispatch --- Store
@@ -57,7 +64,7 @@ flowchart LR
 
 ### 恢复与统一反馈
 
-- 已受理的任务和待反馈事件保存在 SQLite。Bot 忙时，反馈在统一入站等待，空闲后作为标记来源的独立输入处理。回复落盘后确认消费。结果事件去重，浏览器断线重连可补读已落盘消息。
+- 已受理的任务和待反馈事件保存在 SQLite。Bot 忙时，反馈在统一入站等待，空闲后作为标记来源的独立输入处理。回复落盘后确认消费。结果事件去重，客户端重连可补读已落盘消息。
 - 认领、派发和终态分开记录。重启后继续处理未派发任务和未汇报的终态。发送执行请求后失联，按已记录的线程和轮次查询原执行端，结果或副作用仍不明时标记待核对，由 Bot 报告并请用户决定下一步。已发出的操作以原执行记录为准。
 - Worker 的会话压缩、模型请求、工具调度和实例生命周期由执行端管理。后续看板从交办、审批和执行记录读取状态，按 Bot 隔离。需要人工介入的异常直接回原对话。
 
@@ -74,7 +81,7 @@ Worker 的审批请求先登记，关联用户、Bot、交办、线程、轮次�
 
 | 已有能力 | 诺薇娅的接法 |
 | --- | --- |
-| **Web 消息列表和产物体验** | 评估抽取历史分页、附件预览、移动端操作和重连相关的独立组件或函数。以新页面的接口为准，优先复用依赖范围清晰的部分。 [消息列表](../AionUi/packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx) · [Aion Web 开发](../AionUi/docs/contributing/development.md) |
+| **Web 消息列表和产物体验** | 评估复用平台无关的消息类型、历史分页、附件与重连逻辑。现有 Web 组件提供交互参考，手机页面用 React Native 组件实现。 [消息列表](../AionUi/packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx) · [Aion Web 开发](../AionUi/docs/contributing/development.md) |
 | **消息队列、归属校验、定时与审批** | 复用经过验证的状态语义、边界用例和可独立接入的逻辑。首版应用服务用 TypeScript 落地队列和协议映射。 [队列](../AionCore/crates/aionui-session-message/src/queue.rs) · [会话与审批](../AionCore/crates/aionui-conversation/src/service.rs) · [Cron](../AionCore/crates/aionui-cron/src/executor.rs) |
 | **异步生图 MCP** | 复用独立服务。接入生图 Worker 时关联 `image_submit` 返回的任务 ID、原交办和可访问的产物引用。按原 ID 查状态并取结果，遇到 `submission_uncertain` 进入待核对。 [生图 MCP](../aion-openai-image-mcp/README.md) · [异步生图验收](../AionCore/crates/aionui-app/tests/async_image_e2e.rs) |
 | **Mem0 和 Dots Bridge** | Mem0 直接接入已有服务。需要 Dot 入口时，适配既有 Bridge 到统一入站，复用消息去重与附件归属的经验。 [Mem0 记录](memory-mcp-backlog.md) · [Dots 接入](../AionCore/DOTS-BRIDGE.md) |
@@ -90,12 +97,13 @@ DeepSeek Harness 后续作为独立 Worker，通过其 TypeScript SDK 或已验�
 
 | 工作项 | 内容与目标 | 验收标准 |
 | --- | --- | --- |
-| 01 固定聊天与持久化 | 建立单页 Web、HTTP 服务和 SQLite。实现 Novia 固定聊天、历史分页和连接恢复。 | 手机浏览器能聊天。刷新、重启和重连后回到同一对话，历史及新消息顺序正确。 |
+| 01 固定聊天与持久化 | 建立 Expo 客户端、HTTP 服务和 SQLite。实现 Novia 固定聊天、历史分页和连接恢复。 | 手机开发构建可聊天。切回前台、重启和重连后回到同一对话，历史及新消息顺序正确。 |
 | 02 交办队列与模拟 Worker | 完成受理、按序认领、逐项结算和持久反馈。用可控的 Worker 结果验证链路。 | 同一消息拆两项。入队后能继续聊天，先结束的事项先汇报。重试和重启后每项仍只有一条交办记录和一份结果汇报。 |
 | 03 Codex Worker | 接入真实执行、续接、状态和结果。使用已授权的测试工作目录。 | 聊天里交代一项代码工作，确认后继续聊天，完成时自动收到结果。追问或补充能续接原线程。执行端断开时可按 ID 核对，无法确认时报告待核对。 |
 | 04 审批与取消 | 连接 Worker 的原生审批和取消接口，闭合聊天决策路径。 | 在原对话批准或拒绝一个实际请求。含糊答复先澄清，重复或已失效的答复无法授权别的调用。取消只作用于指定轮次。 |
 | 05 Bot 定时任务 | 接入定时管理与持久触发，复用任务队列和反馈。 | 用聊天建一项定时任务，停机跨过触发时间后恢复，只受理一次。前次未结束时按规则等待，完成后回原聊天。 |
 | 06 记忆与历史回查 | 先实现有归属限制的历史回查，再接入 Mem0 和压缩入口。 | 回查能定位原消息。Mem0 不可用时仍可查历史。压缩后继续原会话并能查看完整旧记录。 |
-| 后续扩展 | 接入 DeepSeek Harness 与异步生图 Worker，再按实际需要开放自建 Bot、隔离看板和原生移动端。 | 第二种 Worker 通过同一交办路径返回结果。不同 Bot 的会话、交办和反馈按归属隔离。 |
+| 07 原生通知 | 注册已登录设备，将结果和待审批消息映射到通知及对话跳转。 | 锁屏时收到通知，点击后打开原消息。通知关闭或连接中断时，回到 App 仍能补读。 |
+| 后续扩展 | 接入 DeepSeek Harness 与异步生图 Worker，再按实际需要开放自建 Bot、隔离看板和浏览器入口。 | 第二种 Worker 通过同一交办路径返回结果。不同 Bot 的会话、交办和反馈按归属隔离。 |
 
 首版联验以「手机发一句话 → Novia 确认 → 用户继续聊天 → Codex 执行 → 结果回到原对话」为第一条主线，再覆盖真实审批、定时触发、记忆回查和重启恢复。日志记录交办、线程和轮次的关联、状态、原因及耗时。
