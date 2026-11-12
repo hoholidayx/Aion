@@ -6,6 +6,41 @@
 
 首版覆盖登录后的 Web AionRS 主助手和 Worker。用户配置固定主助手，手动创建参与调度的职能助手和作为兜底的通用助手。主助手与各 Worker 分别配置职责、Profile、模型、Provider、技能和工具。一个 Worker 对应一个已有助手身份，可以有多个独立主题会话。调度 Agent 负责选择助手和会话，并可为选中的助手新建会话。
 
+## 架构图
+
+```mermaid
+flowchart TB
+    User["用户 · Aion Web"]
+    Main["固定主助手<br/>独立内置后端"]
+    Dispatch["调度 Agent<br/>选 Worker · 续用或新建会话<br/>忙时决定排队或取消"]
+    Sessions["AionCore 会话服务<br/>鉴权、投递、轮次控制"]
+    Archive["现有归档服务<br/>归档释放实例<br/>取消归档恢复会话"]
+    Runtime["现有 AionRS 运行时<br/>按会话构建"]
+    Provider["模型 Provider<br/>沿用普通会话调用策略"]
+    Memory["现有 Mem0<br/>按用户与助手隔离"]
+
+    subgraph Workers["用户配置的 Worker"]
+        direction LR
+        Artist["角色设定画师<br/>角色 A 会话 · 角色 B 会话"]
+        General["通用助手<br/>独立主题会话"]
+    end
+
+    User -->|日常对话与交办| Main
+    User -->|打开 Worker 会话直聊| Sessions
+    Main -->|委托专门工作| Dispatch
+    Dispatch -->|提交决策| Sessions
+    Sessions -.->|回传进度与结果| Main
+    Sessions -->|向目标会话投递| Workers
+    Sessions -->|LRU 归档 · 续聊前恢复| Archive
+    Main -.-> Runtime
+    Dispatch -.-> Runtime
+    Workers -.-> Runtime
+    Runtime --> Provider
+    Runtime -->|按助手身份绑定| Memory
+```
+
+调度创建的 Worker 会话参与 LRU。因 LRU 归档的会话可在续聊时恢复，用户手动归档的会话由用户恢复。
+
 ## 主助手后端
 
 在 AionCore 注册独立的内置主助手后端。以现有 Aion CLI 对应的内置 AionRS 后端为基础，使用独立的后端 ID 和相同的 AionRS 运行类型，复用引擎构建、普通会话、工具权限和记忆接入。服务端按会话绑定的后端身份启用主助手的交办能力，普通 Worker 使用现有 AionRS 后端。
