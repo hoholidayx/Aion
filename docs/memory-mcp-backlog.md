@@ -61,7 +61,9 @@
 
 改工具参数时，同步 MCP schema、AionCore 的专用工具 schema 与白名单、`memory-common` 和测试。#3 与 #7 共用上游列表能力。评估 rerank 时，使用 #10 记录的当前混合分作为对照，并注明阈值应用在哪个阶段。
 
-2026 年 11 月 12 日，通用记忆 Skill 从 `memory-triage` 改名为 `memory-common`。Aion 按名称挂载，使用新版时导入 `memory-common` 目录并在目标助手中选择它。[通用记忆 Skill](../../mem0-mcp-lan/skills/memory-common/SKILL.md)
+2026 年 11 月 12 日，通用记忆 Skill 从 `memory-triage` 改名为 `memory-common`。Aion 按名称挂载，使用新版时导入 `memory-common` 目录并在目标助手中选择它。[通用记忆 Skill](https://github.com/hoholidayx/mem0-mcp-lan/blob/bcdbab1c9e251d292529e89d986d39e58e77e0b2/skills/memory-common/SKILL.md)
+
+- **2026 年 11 月 12 日改名部署验收。** NAS 的 Skill 文件与 `bcdbab1` 一致。本机 Web 部署 AionCore `ca864ba7`，使用同一发布二进制在隔离账号导入并挂载 `memory-common`，核对四个文件与源目录一致。固定模型响应确认会话可见新版 Skill 和工具说明，`memory_list` 经正式 NAS MCP 读取到空的测试分区。Web、MCP 和 Mem0 健康检查通过。
 
 ## 完成记录与下游反馈
 
