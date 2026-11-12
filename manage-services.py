@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Manage the local Aion Web and Image MCP services."""
+"""Manage the local services used by Aion."""
 
 import argparse
 import subprocess
@@ -9,8 +9,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 ACTIONS = ("start", "stop", "restart", "status")
+DOTS_MANAGER = ROOT / "local/dots-bridge/manage-tunnel.py"
+DOTS_CONFIG = Path.home() / ".aionui-web/dots-bridge.json"
 SERVICES = {
     "image-mcp": [str(ROOT / "aion-openai-image-mcp/scripts/service.sh")],
+    "dots-bridge": [sys.executable, str(DOTS_MANAGER)],
     "web": [sys.executable, str(ROOT / "AionUi/packages/web-cli/manageWebService.py")],
 }
 TARGETS = ("all", *SERVICES)
@@ -23,6 +26,8 @@ def manage(action, target):
 
     failed = False
     for name in targets:
+        if name == "dots-bridge" and target == "all" and not (DOTS_MANAGER.exists() or DOTS_CONFIG.exists()):
+            continue
         print(f"== {name} ==", flush=True)
         try:
             result = subprocess.run([*SERVICES[name], action], cwd=ROOT, check=False)
