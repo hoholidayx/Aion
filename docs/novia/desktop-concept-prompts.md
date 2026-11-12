@@ -1,6 +1,6 @@
 # PC 端设计图生成提示词
 
-使用内置 ImageGen，以[移动端参考图](mobile-reference.jpg)作为视觉输入。第二轮以初稿为输入，修正用户消息的归属。最终采用[修订后的设计图](desktop-concept.png)。
+使用内置 ImageGen，以[移动端参考图](mobile-reference.jpg)作为视觉输入。第二轮修正用户消息的归属，第三轮按移动端的透明效果修改背景。最终采用[修订后的设计图](desktop-concept.png)。
 
 ## 初稿
 
@@ -12,4 +12,10 @@ Use case: ui-mockup. Adapt the attached mobile mockup into a NEW, separate wides
 
 ```text
 Use case: precise-object-edit, refinement of a high-fidelity Novia desktop UI concept. Image 1 is the exact edit target. Make one change only: in the central chat, the first message “整理这周的竞品动态。” is the USER's message. Remove the silver-haired Novia avatar beside that first message, and move just that first bubble horizontally to the right side of the central chat column, still at the same vertical position, aligned with the right edge of the bottom composer. It is an outgoing message with a slightly brighter soft lavender fill, no avatar, and the same readable white Chinese text. Keep the second message “已交办，完成后我会告诉你。” and its left-side character avatar exactly as before. Preserve the same 16:9 desktop framing and scale, character face and pose, full-screen fantasy wisteria backdrop, left business navigation, right task details panel and all panel labels, result card, settings gear, composer and icons. Do not add UI elements, text, logos, watermark, or other changes.
+```
+
+## 背景修订
+
+```text
+Use case: precise-object-edit. Image 1 is the desktop UI edit target. Image 2 is the mobile style reference for transparency and continuous background. Change only the backdrop treatment of Image 1: completely remove the broad soft-edged, flat plum gradient/feathered veil covering the lower half of the desktop window and central chat. Reveal and naturally extend the detailed original illustrated scene all the way to the bottom edge behind and between the user bubble, assistant bubble, result card, and input composer. Continue the heroine's lavender fabric, warm stone balcony, table edge and nearby wisteria details, matching the existing painted light and perspective. The lower half must visibly contain varied, crisp scenic detail at the same visual quality as the upper half, including the gaps between controls and under the composer. Apply no canvas-wide color scrim, flat-color fill, broad darkening band, vignette or blur; in particular never fade into plain purple below the character. Match Image 2's uninterrupted full-screen illustration, visible through and around the components. Retain subtle translucent plum glass and crisp readable Chinese text only on the existing individual bubbles, result card, composer, and side panels. Keep the exact desktop composition, scale, left and right panel geometry and controls, all labels and example copy, avatar and message alignment, character's face, outfit and pose, skyline and lighting, and single widescreen aspect ratio from Image 1. The top half must look substantially identical; the lower background becomes a continuous illustrated scene. Output the revised desktop screenshot only.
 ```
