@@ -50,7 +50,7 @@
 | --- | --- | --- |
 | 运行方式 | **Node.js 24 LTS + TypeScript + pnpm** | 一个应用工程和一个 Novia 服务进程。服务端和客户端共用语言与数据类型，执行端由适配器独立启动和管理。 |
 | 客户端 | **Expo + React Native + TypeScript** | 首版用同一工程的 Web 导出验证聊天、派活和回传。浏览器模拟手机宽度和网络切换，桌面宽屏验证导航与详情布局。原生通知独立验收。 [Expo Web 发布](https://docs.expo.dev/guides/publishing-websites/) |
-| 服务端 | **Fastify + HTTP JSON + SSE** | HTTP 提交输入和查询历史。客户端在前台通过 SSE 收消息和状态，重连按持久消息游标补读。聊天、调度和 Worker 对接在同一进程内按模块组织。 [Fastify TypeScript 文档](https://fastify.dev/docs/latest/Reference/TypeScript/) |
+| 服务端 | **Fastify + HTTP JSON + SSE** | HTTP 异步受理输入，服务端独立完成生成。SSE 提供会话快照、增量和终态。浏览器重连时通过快照接续当前回复，持久补读在 01C 接入。聊天、调度和 Worker 对接在同一进程内按模块组织。 [Fastify TypeScript 文档](https://fastify.dev/docs/latest/Reference/TypeScript/) |
 | 持久化 | **SQLite + `node:sqlite`** | 用短事务保存聊天、交办、审批、定时触发和待反馈事件。交办表兼作持久队列，同一事务提交终态与待反馈。固定并验证 Node 24 版本，`node:sqlite` 在该版本线处于发布候选阶段。 [Node 24 SQLite 文档](https://nodejs.org/download/release/latest-v24.x/docs/api/sqlite.html) · [SQLite 事务隔离](https://www.sqlite.org/isolation.html) |
 | 聊天模型 | **Vercel AI SDK Core + Novia 薄封装** | 先接一个可配置的模型端点，支持连续对话，再接 Bot 业务工具和结果转述。交办通过聊天中的工具调用提出，由服务端校验参数与权限。首版单 Worker 可按配置派发。 |
 | 首个 Worker | **本机 `codex app-server`，经 stdio JSON-RPC** | 沿用 Codex 原生配置和登录。保存 thread ID 和 turn ID，按原线程续接、订阅终态并回答对应审批请求。固定验收通过的 CLI 版本。 [OpenAI Docs 的 Codex App Server](https://learn.chatgpt.com/docs/app-server) |
@@ -70,7 +70,7 @@
 
 ### 原生客户端与通知
 
-- App 在前台用 `expo/fetch` 读取 SSE，切回前台或重连后从服务端按游标补读已落盘消息。移动端通过 HTTPS 调用 API，登录凭据保存在 `expo-secure-store`。 [Expo 流式 Fetch](https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api) · [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
+- 客户端在前台用 `expo/fetch` 订阅 SSE。受理后的异步轮次在浏览器断开时继续生成。切回前台或重连时，先用会话快照接回在途文本或终态，再接增量。01C 增加按持久游标补读。移动端通过 HTTPS 调用 API，登录凭据保存在 `expo-secure-store`。 [Expo 流式 Fetch](https://docs.expo.dev/versions/latest/sdk/expo/#expofetch-api) · [Expo SecureStore](https://docs.expo.dev/versions/latest/sdk/securestore/)
 - 交办结果和待审批问题先写入原对话，再用 `expo-notifications` 提醒手机用户。通知使用简短提示和消息标识，点击后打开原对话并从服务端读取详情。手机锁屏、App 退出或通知权限关闭期间，交办和定时仍由服务端执行，打开 App 后可补读结果。 [Expo 推送配置](https://docs.expo.dev/push-notifications/push-notifications-setup/)
 - 第一个闭环用 Expo Web 连到实际服务。07 在具备设备时用原生开发构建验证锁屏收通知、点击通知回到原对话、拒绝通知权限后回前台补读。远程推送使用目标平台的推送凭据。 [Expo 开发构建 FAQ](https://docs.expo.dev/develop/development-builds/faq/#remote-push-notifications)
 
@@ -233,8 +233,8 @@ DeepSeek Harness 后续作为独立 Worker，通过其 TypeScript SDK 或已验�
 | 工作项 | 前置 | 内容与目标 | 验收标准 |
 | --- | --- | --- | --- |
 | 01A Provider 与后端连续对话 | 起点 | 接入真实聊天模型和薄封装，给内置 Bot 加载固定人设。先用独立会话 ID 验证连续对话，首批可用进程内存。 | 同一私聊能自然承接闲聊，也能回答带前文约束的技术追问。模拟超时有明确反馈，其他会话的历史不会混入。 |
-| 01B 基础聊天页面与 SSE | 01A | Expo 基础聊天页面接入发送、当前私聊和实时 SSE。 | Expo Web 的手机视口可连发两轮并看到逐步生成和最终状态。模拟断流后可重连，持久补读由 01C 验收。 |
-| 01C SQLite 与会话恢复 | 01A，和 01B 联验 | 落 SQLite 的私聊唯一绑定、会话作者、消息顺序、提交去重与可补读事件。提供最小部署鉴权和会话访问校验。 | 并发打开返回同一会话 ID。重复发送只记录一次。重启或断线重连能补读已落盘消息，未授权请求无法读取。 |
+| 01B 基础聊天页面与 SSE | 01A | Expo Web 接入异步发送与独立 SSE 订阅。使用内存保存当前轮次、会话快照与受理回执。 | 连发两轮并看到逐步生成。浏览器断开或刷新后，后台生成继续。重新连接可接回在途文本或最终结果，重试丢失的回执只触发一次生成。 |
+| 01C SQLite 与会话恢复 | 01A，和 01B 联验 | 在 01B 的异步与订阅边界上落 SQLite。保存私聊绑定、作者、顺序、提交去重与可补读事件。提供最小部署鉴权和会话访问校验。 | 并发打开返回同一会话 ID。重复发送只记录一次。服务重启后可补读已落盘消息，未授权请求无法读取。 |
 | 01F Chat Completions 推理回传 | 01A | 在模型适配层实现兼容 Chat Completions 的同轮工具续跑和新用户轮推理过滤。 | 实际发出的请求在本轮工具续跑时保留推理，新用户轮过滤历史推理，工具调用和结果完整。 |
 | 02A 持久交办受理 | 01C，按 Provider 适用 01F | 给 Bot 接入单项交办工具。每次调用提交初始任务包并持久入队，在同一用户轮次内可以调用多次。 | 普通聊天无需调用工具。明确交办时，队列中有目标、必要原话和上下文。输入两项明确工作时得到两个回执，其中一项写入失败时保留另一项。重放复用回执，后台暂停消费时仍可受理。 |
 | 02B 模拟 Worker 派发与结算 | 02A | 用模拟 Worker 驱动同一看板数据，验证认领、执行关联、等待、结算和待反馈。 | 每项只认领一次，同线程忙时按序等待，另一线程可先完成。任务终态与待反馈同时持久化，无 Worker 可追踪。 |
